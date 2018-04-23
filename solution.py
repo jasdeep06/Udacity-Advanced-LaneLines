@@ -328,7 +328,7 @@ def detect_lanes(binary_warped):
     left_fit = np.polyfit(left_y, left_x, 2)
     right_fit = np.polyfit(right_y, right_x, 2)
 
-    return left_fit,right_fit,left_x,right_x
+    return left_fit,right_fit,left_x,right_x,left_y,right_y
 
 #function to draw lane lines
 def draw_lanes(undist_image,m_inv,left_fit,right_fit):
@@ -366,27 +366,15 @@ def draw_lanes(undist_image,m_inv,left_fit,right_fit):
 
 
 #function to calculate curvature
-def calculate_curvature(img,vehicle_offset):
+def calculate_curvature(img,vehicle_offset,left_x,left_y,right_x,right_y):
 
     ym_per_pix = 30 / 720  # meters per pixel in y dimension
     xm_per_pix = 3.7 / 700  # meters per pixel in x dimension
-    ploty = np.linspace(0, 719, num=720)  # to cover same y-range as image
 
-    y_eval = np.max(ploty)
-    quadratic_coeff = 3e-4  # arbitrary quadratic coefficient
-    # For each y position generate random x position within +/-50 pix
-    # of the line base position in each case (x=200 for left, and x=900 for right)
-    leftx = np.array([200 + (y ** 2) * quadratic_coeff + np.random.randint(-50, high=51)
-                      for y in ploty])
-    rightx = np.array([900 + (y ** 2) * quadratic_coeff + np.random.randint(-50, high=51)
-                       for y in ploty])
+    y_eval = 719
 
-    leftx = leftx[::-1]  # Reverse to match top-to-bottom in y
-    rightx = rightx[::-1]  # Reverse to match top-to-bottom in y
-
-    # Fit new polynomials to x,y in world space
-    left_fit_cr = np.polyfit(ploty * ym_per_pix, leftx * xm_per_pix, 2)
-    right_fit_cr = np.polyfit(ploty * ym_per_pix, rightx * xm_per_pix, 2)
+    left_fit_cr = np.polyfit(left_y * ym_per_pix, left_x * xm_per_pix, 2)
+    right_fit_cr = np.polyfit(right_y * ym_per_pix, right_x * xm_per_pix, 2)
     # Calculate the new radii of curvature
     left_curverad = ((1 + (2 * left_fit_cr[0] * y_eval * ym_per_pix + left_fit_cr[1]) ** 2) ** 1.5) / np.absolute(
         2 * left_fit_cr[0])
@@ -415,9 +403,9 @@ def process_image(image):
     combined_binary=threshold(undistorted_image)
     m,m_inv=perspective_matrix(combined_binary)
     warped_image=perspective_transform_image(combined_binary,m)
-    left_fit, right_fit,left_x,right_x=detect_lanes(warped_image)
+    left_fit, right_fit,left_x,right_x,left_y,right_y=detect_lanes(warped_image)
     result,vehicle_offset=draw_lanes(undistorted_image,m_inv,left_fit,right_fit)
-    final=calculate_curvature(result,vehicle_offset)
+    final=calculate_curvature(result,vehicle_offset,left_x,left_y,right_x,right_y)
 
     return final
 
